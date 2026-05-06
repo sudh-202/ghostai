@@ -1,9 +1,11 @@
 "use client"
 
+import { UserButton } from "@clerk/nextjs"
 import { useState } from "react"
 
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
+import { clerkAppearance } from "@/lib/clerk-appearance"
 
 export function EditorShell() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -13,6 +15,9 @@ export function EditorShell() {
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
+        rightSlot={
+          <UserButton appearance={clerkAppearance} />
+        }
       />
 
       <main className="relative flex-1 overflow-hidden">

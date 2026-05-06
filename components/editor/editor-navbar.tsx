@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -7,11 +9,13 @@ import { Button } from "@/components/ui/button"
 type EditorNavbarProps = {
   isSidebarOpen: boolean
   onSidebarToggle: () => void
+  rightSlot?: ReactNode
 }
 
 export function EditorNavbar({
   isSidebarOpen,
   onSidebarToggle,
+  rightSlot,
 }: EditorNavbarProps) {
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen
 
@@ -28,7 +32,7 @@ export function EditorNavbar({
         </Button>
       </div>
       <div className="flex flex-1 items-center justify-center" />
-      <div className="flex flex-1 items-center justify-end" />
+      <div className="flex flex-1 items-center justify-end">{rightSlot}</div>
     </header>
   )
 }
