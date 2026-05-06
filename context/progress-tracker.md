@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete: All feature specs 01–04 implemented and integrated
+- Complete: All feature specs 01–05 implemented and integrated
 
 ## Current Goal
 
-- Verify end-to-end sign-up/sign-in flow; prepare for feature spec 05 (canvas workspace)
+- Implement feature spec 06 (project API routes — CRUD for projects and collaborators).
 
 ## Completed
 
@@ -35,6 +35,7 @@ change.
 - Verified the auth feature with `npm run lint` and `npm run build`.
 - Refined the auth page presentation so the layout is left-anchored, product-led, and free of the misleading `Welcome Back` framing on the initial sign-in screen.
 - Implemented feature spec 04: editor home screen with heading/description/New Project button; Create/Rename/Delete project dialogs with live slug preview, prefilled inputs, and destructive confirmation; sidebar project items with hover-revealed rename/delete actions (owned only); mobile backdrop scrim with tap-to-close; dedicated `useProjectDialogs` hook for all dialog, form, and loading state.
+- Implemented feature spec 05: multi-file Prisma schema at `prisma/models/` with `Project` and `ProjectCollaborator` models, indexes, cascade delete, and Status enum; `prisma.config.ts` updated to point at new schema folder; `lib/prisma.ts` exports a cached singleton using `PrismaPg` adapter with URL branching for future Accelerate support; first migration applied (`20260506101516_init`).
 
 ## In Progress
 
