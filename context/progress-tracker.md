@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete: All feature specs 01–05 implemented and integrated
+- Complete: All feature specs 01–07 implemented and integrated
 
 ## Current Goal
 
-- Implement feature spec 06 (project API routes — CRUD for projects and collaborators).
+- Implement feature spec 08.
 
 ## Completed
 
@@ -36,6 +36,8 @@ change.
 - Refined the auth page presentation so the layout is left-anchored, product-led, and free of the misleading `Welcome Back` framing on the initial sign-in screen.
 - Implemented feature spec 04: editor home screen with heading/description/New Project button; Create/Rename/Delete project dialogs with live slug preview, prefilled inputs, and destructive confirmation; sidebar project items with hover-revealed rename/delete actions (owned only); mobile backdrop scrim with tap-to-close; dedicated `useProjectDialogs` hook for all dialog, form, and loading state.
 - Implemented feature spec 05: multi-file Prisma schema at `prisma/models/` with `Project` and `ProjectCollaborator` models, indexes, cascade delete, and Status enum; `prisma.config.ts` updated to point at new schema folder; `lib/prisma.ts` exports a cached singleton using `PrismaPg` adapter with URL branching for future Accelerate support; first migration applied (`20260506101516_init`).
+- Implemented feature spec 06: `GET /api/projects` (list by owner), `POST /api/projects` (create, defaults name to "Untitled Project"), `PATCH /api/projects/[projectId]` (rename, owner-only), `DELETE /api/projects/[projectId]` (delete, owner-only, 204); 401 for unauthenticated requests, 403 for non-owner mutations, 404 for missing projects.
+- Implemented feature spec 07: `app/editor/page.tsx` is now a server component that fetches owned and shared projects via `lib/projects.ts` helpers and passes them to `EditorShell` as props; replaced `useProjectDialogs` with `useProjectActions` hook that calls the real API, generates a slug+suffix room ID preview, navigates to `/editor/[id]` on create, and calls `router.refresh()` or `router.push("/editor")` after rename/delete; `POST /api/projects` accepts optional custom `id` so the client-generated room ID becomes the project ID.
 
 ## In Progress
 
@@ -43,8 +45,7 @@ change.
 
 ## Next Up
 
-- Verify the first end-to-end sign-up and sign-in flow in the browser with the local Clerk environment values.
-- Implement feature spec 05 (canvas workspace with React Flow or equivalent).
+- Implement feature spec 08 (canvas workspace with React Flow or equivalent).
 
 ## Open Questions
 

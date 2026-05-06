@@ -2,7 +2,7 @@
 
 import { PanelLeftClose, Pencil, Plus, Trash2 } from "lucide-react"
 
-import type { Project } from "@/hooks/use-project-dialogs"
+import type { ProjectListItem } from "@/lib/projects"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,25 +11,27 @@ import { cn } from "@/lib/utils"
 type ProjectSidebarProps = {
   isOpen: boolean
   onClose: () => void
-  projects: Project[]
+  ownedProjects: ProjectListItem[]
+  sharedProjects: ProjectListItem[]
   onCreateProject: () => void
-  onRenameProject: (project: Project) => void
-  onDeleteProject: (project: Project) => void
+  onRenameProject: (project: ProjectListItem) => void
+  onDeleteProject: (project: ProjectListItem) => void
 }
 
 type ProjectItemProps = {
-  project: Project
+  project: ProjectListItem
+  isOwned: boolean
   onRename: () => void
   onDelete: () => void
 }
 
-function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+function ProjectItem({ project, isOwned, onRename, onDelete }: ProjectItemProps) {
   return (
     <div className="group flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/60">
       <span className="flex-1 truncate text-sm text-sidebar-foreground">
         {project.name}
       </span>
-      {project.isOwned && (
+      {isOwned && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <Button
             aria-label={`Rename ${project.name}`}
@@ -82,14 +84,12 @@ function EmptyState({ title, description }: EmptyStateProps) {
 export function ProjectSidebar({
   isOpen,
   onClose,
-  projects,
+  ownedProjects,
+  sharedProjects,
   onCreateProject,
   onRenameProject,
   onDeleteProject,
 }: ProjectSidebarProps) {
-  const myProjects = projects.filter((p) => p.isOwned)
-  const sharedProjects = projects.filter((p) => !p.isOwned)
-
   return (
     <>
       {isOpen && (
@@ -149,17 +149,18 @@ export function ProjectSidebar({
               className="min-h-0 flex-1 pt-4"
             >
               <ScrollArea className="h-full">
-                {myProjects.length === 0 ? (
+                {ownedProjects.length === 0 ? (
                   <EmptyState
                     title="No projects yet"
                     description="Your personal projects will appear here once you create them."
                   />
                 ) : (
                   <div className="space-y-0.5">
-                    {myProjects.map((project) => (
+                    {ownedProjects.map((project) => (
                       <ProjectItem
                         key={project.id}
                         project={project}
+                        isOwned
                         onRename={() => onRenameProject(project)}
                         onDelete={() => onDeleteProject(project)}
                       />
@@ -185,6 +186,7 @@ export function ProjectSidebar({
                       <ProjectItem
                         key={project.id}
                         project={project}
+                        isOwned={false}
                         onRename={() => onRenameProject(project)}
                         onDelete={() => onDeleteProject(project)}
                       />

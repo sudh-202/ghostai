@@ -10,16 +10,16 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { useProjectDialogs } from "@/hooks/use-project-dialogs"
+import type { useProjectActions } from "@/hooks/use-project-actions"
 
-type ProjectDialogsProps = ReturnType<typeof useProjectDialogs>
+type ProjectDialogsProps = ReturnType<typeof useProjectActions>
 
 export function ProjectDialogs({
   dialog,
   nameInput,
   setNameInput,
   isLoading,
-  slug,
+  roomId,
   closeDialog,
   handleCreate,
   handleRename,
@@ -58,8 +58,8 @@ export function ProjectDialogs({
             </div>
             {nameInput.trim() && (
               <p className="text-xs text-muted-foreground">
-                Slug:{" "}
-                <span className="font-mono text-foreground/70">{slug}</span>
+                Room ID:{" "}
+                <span className="font-mono text-foreground/70">{roomId}</span>
               </p>
             )}
           </div>

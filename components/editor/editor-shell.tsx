@@ -8,12 +8,18 @@ import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectDialogs } from "@/components/editor/project-dialogs"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { Button } from "@/components/ui/button"
-import { useProjectDialogs } from "@/hooks/use-project-dialogs"
+import { useProjectActions } from "@/hooks/use-project-actions"
+import type { ProjectListItem } from "@/lib/projects"
 import { clerkAppearance } from "@/lib/clerk-appearance"
 
-export function EditorShell() {
+type EditorShellProps = {
+  ownedProjects: ProjectListItem[]
+  sharedProjects: ProjectListItem[]
+}
+
+export function EditorShell({ ownedProjects, sharedProjects }: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const dialogs = useProjectDialogs()
+  const actions = useProjectActions()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -27,10 +33,11 @@ export function EditorShell() {
         <ProjectSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          projects={dialogs.projects}
-          onCreateProject={dialogs.openCreate}
-          onRenameProject={dialogs.openRename}
-          onDeleteProject={dialogs.openDelete}
+          ownedProjects={ownedProjects}
+          sharedProjects={sharedProjects}
+          onCreateProject={actions.openCreate}
+          onRenameProject={actions.openRename}
+          onDeleteProject={actions.openDelete}
         />
 
         <section className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6 py-10">
@@ -44,7 +51,7 @@ export function EditorShell() {
                 the sidebar.
               </p>
             </div>
-            <Button onClick={dialogs.openCreate}>
+            <Button onClick={actions.openCreate}>
               <Plus />
               New Project
             </Button>
@@ -52,7 +59,7 @@ export function EditorShell() {
         </section>
       </main>
 
-      <ProjectDialogs {...dialogs} />
+      <ProjectDialogs {...actions} />
     </div>
   )
 }
