@@ -7,7 +7,7 @@ export default async function Home() {
   const { userId, redirectToSignIn } = await auth()
 
   if (!userId) {
-    redirectToSignIn()
+    return redirectToSignIn()
   }
 
   redirect(EDITOR_PATH)

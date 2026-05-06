@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete
+- Complete: All feature specs 01–04 implemented and integrated
 
 ## Current Goal
 
-- Finalize the auth feature so Clerk controls the public auth pages, root redirects, protected routes, and editor account menu.
+- Verify end-to-end sign-up/sign-in flow; prepare for feature spec 05 (canvas workspace)
 
 ## Completed
 
@@ -34,6 +34,7 @@ change.
 - Updated architecture context to reflect the protected-route model, root redirect behavior, and Clerk UI theming.
 - Verified the auth feature with `npm run lint` and `npm run build`.
 - Refined the auth page presentation so the layout is left-anchored, product-led, and free of the misleading `Welcome Back` framing on the initial sign-in screen.
+- Implemented feature spec 04: editor home screen with heading/description/New Project button; Create/Rename/Delete project dialogs with live slug preview, prefilled inputs, and destructive confirmation; sidebar project items with hover-revealed rename/delete actions (owned only); mobile backdrop scrim with tap-to-close; dedicated `useProjectDialogs` hook for all dialog, form, and loading state.
 
 ## In Progress
 
@@ -42,6 +43,7 @@ change.
 ## Next Up
 
 - Verify the first end-to-end sign-up and sign-in flow in the browser with the local Clerk environment values.
+- Implement feature spec 05 (canvas workspace with React Flow or equivalent).
 
 ## Open Questions
 

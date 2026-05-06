@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 
 import { AuthShell } from "@/components/auth/auth-shell"
-import { SIGN_IN_PATH, SIGN_UP_PATH, EDITOR_PATH } from "@/lib/auth-routes"
+import { SIGN_IN_PATH, EDITOR_PATH } from "@/lib/auth-routes"
 import { clerkAppearance } from "@/lib/clerk-appearance"
 
 export default async function SignUpPage() {
@@ -21,7 +21,7 @@ export default async function SignUpPage() {
       <SignUp
         appearance={clerkAppearance}
         fallbackRedirectUrl={EDITOR_PATH}
-        path={SIGN_UP_PATH}
+        path="/sign-up"
         routing="path"
         signInUrl={SIGN_IN_PATH}
       />

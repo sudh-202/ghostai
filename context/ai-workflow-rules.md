@@ -2,11 +2,13 @@
 
 ## Approach
 
-[Describe the overall development approach — e.g. Build
-this project incrementally using a spec-driven workflow.
-Context files define what to build, how to build it, and
-the current state of progress. Always implement against
-these specs — do not infer or invent behavior from scratch.]
+Build GhostAI incrementally using a spec-driven workflow. Context files
+(project-overview.md, architecture.md, ui-context.md, code-standards.md,
+feature-specs/) define product scope, system boundaries, UI standards, and
+implementation requirements. Always implement against these specs — do not
+infer or invent behavior from scratch. Update progress-tracker.md after each
+meaningful implementation change. If a requirement is missing or ambiguous,
+resolve it in the context files before implementing.
 
 ## Scoping Rules
 
@@ -20,9 +22,9 @@ these specs — do not infer or invent behavior from scratch.]
 
 Split an implementation step if it combines:
 
-- [Concern one — e.g. UI changes and background task changes]
-- [Concern two — e.g. Multiple unrelated API routes]
-- [Concern three — e.g. Behavior not clearly defined in
+- Frontend UI changes and authentication/backend changes — keep UI logic isolated from backend integration
+- Multiple unrelated feature areas (e.g., project CRUD and editor workspaces) — implement one feature boundary per step
+- Behavior not clearly defined in the context files — resolve ambiguities in context files before combining with implementation
   the context files]
 
 If a change cannot be verified end to end quickly,
@@ -41,8 +43,8 @@ the scope is too broad — split it.
 
 Do not modify the following unless explicitly instructed:
 
-- [e.g. components/ui/* — generated UI library components]
-- [e.g. Any third-party library internals]
+- `components/ui/*` — generated shadcn/ui library components
+- `node_modules/` and all third-party library internals
 
 ## Keeping Docs in Sync
 

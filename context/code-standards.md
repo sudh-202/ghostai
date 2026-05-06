@@ -50,4 +50,4 @@
 - `[folder]/` — [What belongs here]
 - `[folder]/` — [What belongs here]
 - `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]s
+- `[folder]/` — [What belongs here]

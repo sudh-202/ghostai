@@ -15,14 +15,14 @@ colors inside feature components.
 
 | Role            | CSS Variable       | Value    |
 | --------------- | ------------------ | -------- |
-| Page background | `--bg-base`        | `#080a0e` |
-| Surface         | `--bg-surface`     | `#15171c` |
-| Primary text    | `--text-primary`   | `#f6faff` |
-| Muted text      | `--text-muted`     | `#a5abb4` |
-| Primary accent  | `--accent-primary` | `#c6d6e8` |
-| Border          | `--border-default` | `#ffffff1f` |
-| Error           | `--state-error`    | `#ed4a49` |
-| Success         | `--state-success`  | `#75c2b3` |
+| Page background | `--background`     | `oklch(0.145 0.01 260)` |
+| Surface         | `--card`           | `oklch(0.205 0.01 260)` |
+| Primary text    | `--foreground`     | `oklch(0.985 0.01 260)` |
+| Muted text      | `--muted-foreground` | `oklch(0.74 0.015 255)` |
+| Primary accent  | `--primary`        | `oklch(0.87 0.03 250)` |
+| Border          | `--border`         | `oklch(1 0 0 / 12%)` |
+| Error           | `--destructive`    | `oklch(0.64 0.2 25)` |
+| Success         | `--state-success`  | `oklch(0.68 0.11 165)` |
 
 ## Typography
 
