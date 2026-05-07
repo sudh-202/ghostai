@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 type EditorNavbarProps = {
   isSidebarOpen: boolean
   onSidebarToggle: () => void
+  centerSlot?: ReactNode
   rightSlot?: ReactNode
 }
 
 export function EditorNavbar({
   isSidebarOpen,
   onSidebarToggle,
+  centerSlot,
   rightSlot,
 }: EditorNavbarProps) {
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen
@@ -31,7 +33,7 @@ export function EditorNavbar({
           <ToggleIcon />
         </Button>
       </div>
-      <div className="flex flex-1 items-center justify-center" />
+      <div className="flex flex-1 items-center justify-center">{centerSlot}</div>
       <div className="flex flex-1 items-center justify-end">{rightSlot}</div>
     </header>
   )
