@@ -1,7 +1,7 @@
 "use client"
 
 import { FormEvent, useRef, useEffect, useState } from "react"
-import { Bot, Send, Sparkles } from "lucide-react"
+import { Bot, LayoutTemplate, Send, Sparkles } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 import { EditorNavbar } from "@/components/editor/editor-navbar"
@@ -9,6 +9,8 @@ import { LiveblocksCanvas } from "@/components/editor/liveblocks-canvas"
 import { ProjectDialogs } from "@/components/editor/project-dialogs"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { ShareDialog } from "@/components/editor/share-dialog"
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
+import { CANVAS_TEMPLATES, type CanvasTemplate } from "@/components/editor/starter-templates"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useProjectActions } from "@/hooks/use-project-actions"
@@ -29,6 +31,11 @@ export function WorkspaceShell({
 }: WorkspaceShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAiOpen, setIsAiOpen] = useState(true)
+  const [isStarterTemplatesOpen, setIsStarterTemplatesOpen] = useState(false)
+  const [templateImportRequest, setTemplateImportRequest] = useState<{
+    requestId: number
+    template: CanvasTemplate
+  } | null>(null)
   const [taskInput, setTaskInput] = useState("")
   const [chatMessages, setChatMessages] = useState<
     Array<{ id: string; role: "assistant" | "user"; text: string }>
@@ -85,6 +92,10 @@ export function WorkspaceShell({
         }
         rightSlot={
           <div className="flex items-center gap-1.5">
+            <Button onClick={() => setIsStarterTemplatesOpen(true)} size="sm" variant="ghost">
+              <LayoutTemplate aria-hidden="true" />
+              Templates
+            </Button>
             <ShareDialog canManage={project.isOwner} projectId={project.id} />
             <Button
               aria-label="Toggle AI sidebar"
@@ -114,7 +125,10 @@ export function WorkspaceShell({
         />
 
         <section className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/70 shadow-2xl shadow-black/20">
-          <LiveblocksCanvas roomId={project.id} />
+          <LiveblocksCanvas
+            roomId={project.id}
+            templateImportRequest={templateImportRequest}
+          />
         </section>
 
         <aside
@@ -205,6 +219,17 @@ export function WorkspaceShell({
         </aside>
       </main>
 
+      <StarterTemplatesModal
+        onImport={(template) => {
+          setTemplateImportRequest({
+            requestId: Date.now(),
+            template,
+          })
+        }}
+        onOpenChange={setIsStarterTemplatesOpen}
+        open={isStarterTemplatesOpen}
+        templates={CANVAS_TEMPLATES}
+      />
       <ProjectDialogs {...actions} />
     </div>
   )
