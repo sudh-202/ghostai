@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete: All feature specs 01–13 implemented and integrated
+- Complete: All feature specs 01–18 implemented and integrated
 
 ## Current Goal
 
-- Final feature-spec implementation pass complete with collaborative canvas, shape-drop flow, and shape-specific node rendering in place.
+- Final feature-spec implementation pass complete with collaborative canvas, starter-template imports, shape-drop flow, shape-specific node rendering, base node editing, on-canvas color theming, and custom edge behavior in place.
 
 ## Completed
 
@@ -46,6 +46,10 @@ change.
 - Implemented feature spec 11: replaced the workspace canvas placeholder with a client-side `LiveblocksCanvas` wrapper that mounts `LiveblocksProvider`, `RoomProvider`, `ClientSideSuspense`, a connection-error fallback, and a Liveblocks-synced React Flow surface; added shared canvas types in `types/canvas.ts`; wired `useLiveblocksFlow` with empty initial nodes and edges under the `flow` storage key; enabled loose connections, `fitView`, `MiniMap`, and a dot-pattern background; imported the React Flow stylesheet in `app/layout.tsx`; updated architecture context for the new collaborative canvas boundary; verified with `npm run lint` and `npm run build`.
 - Implemented feature spec 12: expanded the shared canvas shape model to support rectangle, diamond, circle, pill, cylinder, and hexagon nodes; added a basic custom `canvasNode` renderer so collaborative nodes are visible; added a bottom-center floating shape toolbar with draggable icon buttons that publish shape name plus default size in the drag payload; wired `dragover` and `drop` on the React Flow surface to convert screen coordinates into flow coordinates and create Liveblocks-synced nodes with empty labels, the default canvas color, the dragged shape value, and shape-timestamp-counter IDs; verified with `npm run lint` and `npm run build`.
 - Implemented feature spec 13: replaced the placeholder node body with shape-aware rendering in `components/editor/liveblocks-canvas.tsx`, using CSS for rectangle, pill, and circle plus scalable SVG primitives for diamond, hexagon, and cylinder; kept borders subdued at rest and brighter when selected; added a cursor-following ghost preview for shape dragging that reuses the exact dragged shape type and default drop size, hides the native browser drag image, and clears on drop or cancel; preserved the existing Liveblocks-backed drop pipeline; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 14: added subtle dark-mode `NodeResizer` controls that appear on selected nodes and enforce minimum node dimensions; added inline centered label editing on `canvasNode` via double-click, including empty-label placeholder text, in-place textarea editing, live collaborative label updates through Liveblocks storage, and blur / `Escape` close behavior; prevented textarea interactions from dragging or panning the canvas; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 15: added a predefined node color-theme palette in `types/canvas.ts`, pairing each node background with a matching text color using existing app theme tokens; mounted a floating selected-node color toolbar above each selected node in `components/editor/liveblocks-canvas.tsx` with active-state styling, tight hover glow, and `nodrag`/`nopan` interaction guards; selecting a swatch now updates both `data.color` and `data.textColor` through Liveblocks storage so node fills and labels re-render immediately for all collaborators; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 16: replaced default edges with a custom `canvasEdge` renderer in `components/editor/liveblocks-canvas.tsx` using `getSmoothStepPath`, `BaseEdge`, `EdgeLabelRenderer`, rounded light strokes, arrowheads, wider invisible interaction width, and active hover/selection brightening; added four-sided node handles that support loose connections and surface target handles during active connection drags; added collaborative inline edge label editing with midpoint-positioned pill badges and auto-sizing input saved on blur / `Enter` / `Escape`; updated `types/canvas.ts` so edge data carries a shared `label`; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 18: added `components/editor/starter-templates.ts` with typed predefined microservices, CI/CD pipeline, and event-driven system diagrams; added `components/editor/starter-templates-modal.tsx` with a scrollable template-card grid and lightweight static diagram previews; added a navbar Templates entry point in `components/editor/workspace-shell.tsx`; wired `components/editor/liveblocks-canvas.tsx` to replace the current collaborative `flow` graph with the selected template and fit the view after import; updated architecture context; verified with `npm run lint` and `npm run build`.
 
 ## In Progress
 
@@ -70,6 +74,10 @@ change.
 - The base workspace canvas now uses a typed React Flow + Liveblocks storage model under the `flow` room key, with client-side room bootstrap isolated to `components/editor/liveblocks-canvas.tsx` while the editor route itself stays server-rendered.
 - New canvas nodes are inserted through React Flow's change pipeline so drag-to-create shape drops stay synchronized through the same Liveblocks-backed node storage model as future direct node edits.
 - Canvas shape rendering now mixes CSS and SVG primitives inside the same `canvasNode` renderer so simple rounded shapes stay lightweight while geometric and cylindrical shapes scale cleanly with arbitrary node sizes.
+- Node resize changes continue to flow through React Flow's shared node-change pipeline into Liveblocks storage, while inline label edits write directly to the same typed `flow.nodes[*].data.label` collaborative storage path used by the custom canvas renderer.
+- Canvas node theming is now modeled as a predefined collaborative background/text pair in node `data`, keeping swatch selection deterministic and avoiding any freeform color-picker state.
+- Canvas edges now use a dedicated custom edge type with collaborative label data in `edge.data.label`, while new connections are still inserted through the shared React Flow/Liveblocks edge-change pipeline.
+- Starter-template imports now use predefined typed node/edge graphs and replace the shared `flow` room state in one collaborative mutation before the canvas fits to the imported diagram.
 
 ## Session Notes
 
@@ -87,3 +95,10 @@ change.
 - The base canvas spec is now live: the workspace center panel renders a React Flow room synchronized through Liveblocks, starting from an empty shared graph and leaving custom node rendering, persistence logic, controls, and AI behavior for later specs.
 - The workspace canvas now includes a bottom shape toolbar and drag-to-create flow, so users can seed collaborative `canvasNode` instances directly onto the shared graph before shape-specific visuals or richer editing tools are added.
 - The workspace canvas now renders each supported node shape with its intended silhouette and shows a fixed ghost preview during shape drags, while keeping node creation and collaborative synchronization unchanged underneath.
+- The workspace canvas now supports base node editing: selected nodes expose resize handles with minimum dimensions, and double-clicking a node label opens an inline textarea that updates the shared Liveblocks label state as the user types.
+- The workspace canvas now exposes a floating color toolbar for selected nodes, and each swatch updates both the node fill and label color through the shared Liveblocks node data model.
+- The workspace canvas now renders custom right-angle edges with arrowheads and inline collaborative labels, and target handles become visible during connection drags so edge creation is easier to follow.
+- Implemented feature spec 17: added a pill-shaped floating control bar at bottom-left with zoom out / fit view / zoom in (wired to the React Flow instance with smooth animation) and undo / redo (wired to Liveblocks history with disabled-state dimming when history is exhausted); created `hooks/useKeyboardShortcuts.ts` handling `+`/`=` zoom in, `-` zoom out, `Cmd/Ctrl+Z` undo, `Cmd/Ctrl+Shift+Z` and `Cmd/Ctrl+Y` redo, all skipping editable targets; removed the MiniMap.
+- Follow-up canvas geometry polish: node handles now sit on the node boundary instead of floating outside it, the cylinder silhouette was tightened to better match the reference database shape, and the SVG-based shapes use reduced internal insets so connection lines visually meet the node edges more cleanly.
+- Implemented feature spec 18: the workspace navbar now opens a starter-template dialog with fixed-viewport diagram previews, and selecting a template replaces the current Liveblocks-backed canvas graph before fitting the view to the imported layout.
+- Follow-up starter-template preview polish: the modal preview now shows just the diagram structure without inline node labels, avoiding cramped unreadable text in the small preview viewport.
