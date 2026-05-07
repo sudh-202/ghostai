@@ -14,13 +14,23 @@ export type DialogState =
   | { type: "delete"; project: ProjectListItem }
 
 function toSlug(name: string): string {
-  return name
+  // Normalize unicode and remove diacritics for better slug generation
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+  
+  // Handle non-ASCII characters (CJK, Arabic, Cyrillic, etc.)
+  // Remove any remaining non-ASCII characters
+  const asciiOnly = normalized
+    .replace(/[^\x00-\x7F]/g, "") // Keep only ASCII
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Collapse multiple hyphens
+    .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
+  
+  return asciiOnly
 }
 
 function randomSuffix(): string {
@@ -34,6 +44,8 @@ export function useProjectActions() {
   const [nameInput, setNameInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [suffix, setSuffix] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isError, setIsError] = useState(false)
 
   const slug = toSlug(nameInput)
   const roomId = slug ? `${slug}-${suffix}` : ""
@@ -61,6 +73,7 @@ export function useProjectActions() {
   const handleCreate = useCallback(async () => {
     if (!nameInput.trim()) return
     setIsLoading(true)
+    setError(null)
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -71,7 +84,14 @@ export function useProjectActions() {
         const project: ProjectListItem = await res.json()
         closeDialog()
         router.push(`/editor/${project.id}`)
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        setError(errorData.error || "Failed to create project")
+        setIsError(true)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create project")
+      setIsError(true)
     } finally {
       setIsLoading(false)
     }
@@ -80,6 +100,7 @@ export function useProjectActions() {
   const handleRename = useCallback(async () => {
     if (dialog.type !== "rename" || !nameInput.trim()) return
     setIsLoading(true)
+    setError(null)
     try {
       const res = await fetch(`/api/projects/${dialog.project.id}`, {
         method: "PATCH",
@@ -89,7 +110,14 @@ export function useProjectActions() {
       if (res.ok) {
         closeDialog()
         router.refresh()
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        setError(errorData.error || "Failed to rename project")
+        setIsError(true)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename project")
+      setIsError(true)
     } finally {
       setIsLoading(false)
     }
@@ -98,6 +126,7 @@ export function useProjectActions() {
   const handleDelete = useCallback(async () => {
     if (dialog.type !== "delete") return
     setIsLoading(true)
+    setError(null)
     const projectId = dialog.project.id
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
@@ -110,7 +139,14 @@ export function useProjectActions() {
         } else {
           router.refresh()
         }
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        setError(errorData.error || "Failed to delete project")
+        setIsError(true)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete project")
+      setIsError(true)
     } finally {
       setIsLoading(false)
     }
@@ -122,12 +158,15 @@ export function useProjectActions() {
     setNameInput,
     isLoading,
     roomId,
+    closeDialog,
     openCreate,
     openRename,
     openDelete,
-    closeDialog,
     handleCreate,
     handleRename,
     handleDelete,
+    error,
+    isError,
+    setError,
   }
 }

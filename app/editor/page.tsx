@@ -13,7 +13,7 @@ export default async function EditorPage() {
 
   const [ownedProjects, sharedProjects] = await Promise.all([
     getOwnedProjects(userId),
-    getSharedProjects(email),
+    email ? getSharedProjects(email) : Promise.resolve([]),
   ])
 
   return <EditorShell ownedProjects={ownedProjects} sharedProjects={sharedProjects} />

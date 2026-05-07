@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete: All feature specs 01–07 implemented and integrated
+- Complete: All feature specs 01–10 implemented and integrated
 
 ## Current Goal
 
-- Implement feature spec 08.
+- Final feature-spec implementation pass complete.
 
 ## Completed
 
@@ -38,6 +38,11 @@ change.
 - Implemented feature spec 05: multi-file Prisma schema at `prisma/models/` with `Project` and `ProjectCollaborator` models, indexes, cascade delete, and Status enum; `prisma.config.ts` updated to point at new schema folder; `lib/prisma.ts` exports a cached singleton using `PrismaPg` adapter with URL branching for future Accelerate support; first migration applied (`20260506101516_init`).
 - Implemented feature spec 06: `GET /api/projects` (list by owner), `POST /api/projects` (create, defaults name to "Untitled Project"), `PATCH /api/projects/[projectId]` (rename, owner-only), `DELETE /api/projects/[projectId]` (delete, owner-only, 204); 401 for unauthenticated requests, 403 for non-owner mutations, 404 for missing projects.
 - Implemented feature spec 07: `app/editor/page.tsx` is now a server component that fetches owned and shared projects via `lib/projects.ts` helpers and passes them to `EditorShell` as props; replaced `useProjectDialogs` with `useProjectActions` hook that calls the real API, generates a slug+suffix room ID preview, navigates to `/editor/[id]` on create, and calls `router.refresh()` or `router.push("/editor")` after rename/delete; `POST /api/projects` accepts optional custom `id` so the client-generated room ID becomes the project ID.
+- Implemented feature spec 08: `app/editor/[roomId]/page.tsx` is a server component that checks Clerk auth (redirect to `/sign-in` if unauthenticated) and project access via `lib/project-access.ts` helpers (renders `AccessDenied` for missing or unauthorized projects); created `components/editor/access-denied.tsx` with a centered lock-icon layout and a back link; created `components/editor/workspace-shell.tsx` as the full-viewport workspace client component — navbar shows project name in center with Share button + AI toggle + UserButton on the right, `ProjectSidebar` on the left with active-project highlight and clickable navigation links, canvas placeholder (dark bg, compass icon, "Workspace Shell" eyebrow, heading, description), right AI Copilot sidebar (open by default, header with Sparkles icon, "Chat surface pending" card, "Future Hooks" card); extended `EditorNavbar` with a `centerSlot` prop; extended `ProjectSidebar` with `activeProjectId` prop and `Link`-based navigation on each item.
+- Implemented feature spec 09: added owner/collaborator-aware share dialog in `components/editor/share-dialog.tsx` and mounted it in the workspace navbar; owners can invite by email, remove collaborators, and copy the project URL with temporary `Copied!` feedback, while collaborators get a read-only collaborator list; added `GET`/`POST /api/projects/[projectId]/collaborators` plus `DELETE /api/projects/[projectId]/collaborators/[collaboratorId]` with authenticated access checks and owner-only mutations; added `lib/project-collaborators.ts` to load collaborator rows and enrich them with Clerk display names and avatar URLs by email without introducing a local user table; normalized collaborator email handling in project access and shared-project queries.
+- Follow-up workspace UI fix: the share dialog now shows a `People with access` section that includes the owner plus collaborator rows with role badges, so access is visible even before anyone is invited; the AI sidebar now includes a real task composer and local prompt history shell so users can type and submit tasks into the panel instead of seeing a placeholder-only surface.
+- Follow-up workspace layout polish: on desktop, the center canvas now reflows between the left project sidebar and right AI panel instead of being visually covered by them, and the AI panel now uses the same floating rounded-2xl border, shadow, and blur treatment as the project sidebar.
+- Implemented feature spec 10: updated `liveblocks.config.ts` with typed Presence (`cursor`, `isThinking`) and UserMeta (`displayName`, `avatarUrl`, `cursorColor`); installed `@liveblocks/node`; added `lib/liveblocks.ts` with a lazy cached Liveblocks node client plus deterministic cursor-color mapping from user ID to a fixed palette; added `POST /api/liveblocks-auth` that requires Clerk auth, verifies project access via the existing helper, provisions the Liveblocks room using the project ID, and returns a signed Liveblocks session token carrying the user display name, avatar, and cursor color; updated architecture context for the new realtime boundary; verified with `npm run lint` and `npm run build`.
 
 ## In Progress
 
@@ -45,7 +50,7 @@ change.
 
 ## Next Up
 
-- Implement feature spec 08 (canvas workspace with React Flow or equivalent).
+- None.
 
 ## Open Questions
 
@@ -57,6 +62,8 @@ change.
 - Used local/system font stacks instead of remote Google font fetching so the Next.js production build can succeed reliably in this environment.
 - Clerk is the active authentication provider, mounted globally in `app/layout.tsx`, themed with the bundled `@clerk/ui` package, and enforced through `proxy.ts`.
 - Clerk public route paths are normalized from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL` so redirects and route protection use one source of truth.
+- Collaborator access remains email-based in Prisma, and Clerk Backend API lookups are used only to enrich collaborator presentation data with display names and avatar URLs at read time.
+- Liveblocks server access is created lazily from `LIVEBLOCKS_SECRET_KEY` to keep Next.js builds safe when the secret is missing at import time, and room authorization is always scoped to project IDs.
 
 ## Session Notes
 
@@ -67,3 +74,7 @@ change.
 - The shared tabs primitive now forwards `orientation` to Base UI instead of only mirroring it in a data attribute, preserving accessible arrow-key behavior for future vertical tabs.
 - The auth feature now follows the local spec in `context/feature-specs/03-auth.md`: dedicated auth pages, root redirect logic, and default route protection through `proxy.ts`.
 - `.env.local` must expose Clerk's standard sign-in and sign-up URL variables alongside the existing publishable and secret keys for redirect-aware auth flows.
+- The share dialog follows `context/feature-specs/09-share-dialog.md`: owners can manage collaborator rows and copy the room link, collaborators stay read-only, and Clerk enrichment is best-effort so missing Clerk users still render as plain emails.
+- The share dialog now surfaces the owner as part of the access list, and the AI sidebar includes a client-side task composer/history shell for immediate usability while backend AI execution remains a later step.
+- The desktop workspace shell now treats both side panels as peer floating columns, letting the center canvas shrink and expand cleanly between them while preserving overlay behavior on smaller screens.
+- `.env.local` now also needs `LIVEBLOCKS_SECRET_KEY` for the realtime auth route; the server client is lazy-initialized in `lib/liveblocks.ts` so missing env values do not break the build until the auth route is actually used.

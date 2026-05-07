@@ -27,7 +27,7 @@ Create `lib/prisma.ts` as a cached singleton.
 Branch by `DATABASE_URL`:
 - if it starts with `prisma+postgres:/`, use Accelerate
 - otherwise use direct `@prisma/adapter-pg`
-Cache the client on `global`in development for hot reloads.
+Cache the client on `global` in development for hot reloads.
 
 ## Migration
 
@@ -44,6 +44,6 @@ Already installed:
 
 ## Check When Done
 - schema has both models with correct relations and indexes
--`lib/prisma.ts` exports one cached Prisma instance
+- `lib/prisma.ts` exports one cached Prisma instance
 - migration runs successfully
 - `npm run build` passes

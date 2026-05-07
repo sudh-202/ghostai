@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { PanelLeftClose, Pencil, Plus, Trash2 } from "lucide-react"
 
 import type { ProjectListItem } from "@/lib/projects"
@@ -13,6 +14,7 @@ type ProjectSidebarProps = {
   onClose: () => void
   ownedProjects: ProjectListItem[]
   sharedProjects: ProjectListItem[]
+  activeProjectId?: string
   onCreateProject: () => void
   onRenameProject: (project: ProjectListItem) => void
   onDeleteProject: (project: ProjectListItem) => void
@@ -20,14 +22,21 @@ type ProjectSidebarProps = {
 
 type ProjectItemProps = {
   project: ProjectListItem
+  isActive: boolean
   isOwned: boolean
   onRename: () => void
   onDelete: () => void
 }
 
-function ProjectItem({ project, isOwned, onRename, onDelete }: ProjectItemProps) {
+function ProjectItem({ project, isActive, isOwned, onRename, onDelete }: ProjectItemProps) {
   return (
-    <div className="group flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/60">
+    <Link
+      href={`/editor/${project.id}`}
+      className={cn(
+        "group flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/60",
+        isActive && "bg-sidebar-accent text-sidebar-foreground"
+      )}
+    >
       <span className="flex-1 truncate text-sm text-sidebar-foreground">
         {project.name}
       </span>
@@ -37,6 +46,7 @@ function ProjectItem({ project, isOwned, onRename, onDelete }: ProjectItemProps)
             aria-label={`Rename ${project.name}`}
             className="text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onRename()
             }}
@@ -49,6 +59,7 @@ function ProjectItem({ project, isOwned, onRename, onDelete }: ProjectItemProps)
             aria-label={`Delete ${project.name}`}
             className="text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-destructive"
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onDelete()
             }}
@@ -59,7 +70,7 @@ function ProjectItem({ project, isOwned, onRename, onDelete }: ProjectItemProps)
           </Button>
         </div>
       )}
-    </div>
+    </Link>
   )
 }
 
@@ -86,6 +97,7 @@ export function ProjectSidebar({
   onClose,
   ownedProjects,
   sharedProjects,
+  activeProjectId,
   onCreateProject,
   onRenameProject,
   onDeleteProject,
@@ -103,10 +115,10 @@ export function ProjectSidebar({
       <aside
         aria-hidden={!isOpen}
         className={cn(
-          "absolute inset-y-0 left-0 z-20 w-full max-w-sm px-3 pb-3 pt-2 transition-all duration-300 ease-out sm:w-[22rem]",
+          "absolute inset-y-0 left-0 z-20 w-full max-w-sm px-3 pb-3 pt-2 transition-all duration-300 ease-out sm:w-[22rem] lg:relative lg:inset-auto lg:h-full lg:max-w-none lg:overflow-hidden lg:px-0 lg:pb-0 lg:pt-0 lg:transition-[width,opacity,transform]",
           isOpen
-            ? "pointer-events-auto translate-x-0 opacity-100"
-            : "pointer-events-none -translate-x-[calc(100%+1rem)] opacity-0"
+            ? "pointer-events-auto translate-x-0 opacity-100 lg:w-[22rem]"
+            : "pointer-events-none -translate-x-[calc(100%+1rem)] opacity-0 lg:w-0 lg:-translate-x-3"
         )}
       >
         <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-sidebar/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
@@ -160,6 +172,7 @@ export function ProjectSidebar({
                       <ProjectItem
                         key={project.id}
                         project={project}
+                        isActive={project.id === activeProjectId}
                         isOwned
                         onRename={() => onRenameProject(project)}
                         onDelete={() => onDeleteProject(project)}
@@ -186,6 +199,7 @@ export function ProjectSidebar({
                       <ProjectItem
                         key={project.id}
                         project={project}
+                        isActive={project.id === activeProjectId}
                         isOwned={false}
                         onRename={() => onRenameProject(project)}
                         onDelete={() => onDeleteProject(project)}
