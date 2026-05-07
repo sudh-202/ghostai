@@ -1,3 +1,7 @@
+import type { LiveblocksFlow } from "@liveblocks/react-flow"
+
+import type { CanvasEdge, CanvasNode } from "@/types/canvas"
+
 // Define Liveblocks types for your application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
 declare global {
@@ -9,7 +13,9 @@ declare global {
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
-    Storage: Record<string, never>;
+    Storage: {
+      flow: LiveblocksFlow<CanvasNode, CanvasEdge>;
+    };
 
     // Custom user info set when authenticating with a secret key
     UserMeta: {

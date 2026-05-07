@@ -1,10 +1,11 @@
 "use client"
 
 import { FormEvent, useRef, useEffect, useState } from "react"
-import { Bot, Compass, Send, Sparkles } from "lucide-react"
+import { Bot, Send, Sparkles } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 import { EditorNavbar } from "@/components/editor/editor-navbar"
+import { LiveblocksCanvas } from "@/components/editor/liveblocks-canvas"
 import { ProjectDialogs } from "@/components/editor/project-dialogs"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { ShareDialog } from "@/components/editor/share-dialog"
@@ -112,34 +113,8 @@ export function WorkspaceShell({
           onDeleteProject={actions.openDelete}
         />
 
-        {/* canvas placeholder — dot-grid background */}
-        <section
-          className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-8 overflow-hidden rounded-2xl border border-border/70 text-center shadow-2xl shadow-black/20"
-          style={{
-            backgroundColor: "oklch(0.10 0.008 260)",
-            backgroundImage:
-              "radial-gradient(circle, oklch(0.24 0.01 260) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-border/30 bg-muted/15">
-            <Compass aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
-          </div>
-          <div className="space-y-4">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground/50">
-              Workspace Shell
-            </p>
-            <h2 className="font-heading text-3xl font-semibold leading-snug tracking-tight text-foreground/80 sm:text-4xl">
-              Canvas and collaboration
-              <br />
-              tooling land here next.
-            </h2>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground/60">
-              This room is ready for the shared architecture canvas, durable AI
-              workflows, and real-time presence. For now, the shell is wired
-              with project context and navigation only.
-            </p>
-          </div>
+        <section className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/70 shadow-2xl shadow-black/20">
+          <LiveblocksCanvas roomId={project.id} />
         </section>
 
         <aside

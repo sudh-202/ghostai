@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Complete: All feature specs 01–10 implemented and integrated
+- Complete: All feature specs 01–13 implemented and integrated
 
 ## Current Goal
 
-- Final feature-spec implementation pass complete.
+- Final feature-spec implementation pass complete with collaborative canvas, shape-drop flow, and shape-specific node rendering in place.
 
 ## Completed
 
@@ -43,6 +43,9 @@ change.
 - Follow-up workspace UI fix: the share dialog now shows a `People with access` section that includes the owner plus collaborator rows with role badges, so access is visible even before anyone is invited; the AI sidebar now includes a real task composer and local prompt history shell so users can type and submit tasks into the panel instead of seeing a placeholder-only surface.
 - Follow-up workspace layout polish: on desktop, the center canvas now reflows between the left project sidebar and right AI panel instead of being visually covered by them, and the AI panel now uses the same floating rounded-2xl border, shadow, and blur treatment as the project sidebar.
 - Implemented feature spec 10: updated `liveblocks.config.ts` with typed Presence (`cursor`, `isThinking`) and UserMeta (`displayName`, `avatarUrl`, `cursorColor`); installed `@liveblocks/node`; added `lib/liveblocks.ts` with a lazy cached Liveblocks node client plus deterministic cursor-color mapping from user ID to a fixed palette; added `POST /api/liveblocks-auth` that requires Clerk auth, verifies project access via the existing helper, provisions the Liveblocks room using the project ID, and returns a signed Liveblocks session token carrying the user display name, avatar, and cursor color; updated architecture context for the new realtime boundary; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 11: replaced the workspace canvas placeholder with a client-side `LiveblocksCanvas` wrapper that mounts `LiveblocksProvider`, `RoomProvider`, `ClientSideSuspense`, a connection-error fallback, and a Liveblocks-synced React Flow surface; added shared canvas types in `types/canvas.ts`; wired `useLiveblocksFlow` with empty initial nodes and edges under the `flow` storage key; enabled loose connections, `fitView`, `MiniMap`, and a dot-pattern background; imported the React Flow stylesheet in `app/layout.tsx`; updated architecture context for the new collaborative canvas boundary; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 12: expanded the shared canvas shape model to support rectangle, diamond, circle, pill, cylinder, and hexagon nodes; added a basic custom `canvasNode` renderer so collaborative nodes are visible; added a bottom-center floating shape toolbar with draggable icon buttons that publish shape name plus default size in the drag payload; wired `dragover` and `drop` on the React Flow surface to convert screen coordinates into flow coordinates and create Liveblocks-synced nodes with empty labels, the default canvas color, the dragged shape value, and shape-timestamp-counter IDs; verified with `npm run lint` and `npm run build`.
+- Implemented feature spec 13: replaced the placeholder node body with shape-aware rendering in `components/editor/liveblocks-canvas.tsx`, using CSS for rectangle, pill, and circle plus scalable SVG primitives for diamond, hexagon, and cylinder; kept borders subdued at rest and brighter when selected; added a cursor-following ghost preview for shape dragging that reuses the exact dragged shape type and default drop size, hides the native browser drag image, and clears on drop or cancel; preserved the existing Liveblocks-backed drop pipeline; verified with `npm run lint` and `npm run build`.
 
 ## In Progress
 
@@ -64,6 +67,9 @@ change.
 - Clerk public route paths are normalized from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL` so redirects and route protection use one source of truth.
 - Collaborator access remains email-based in Prisma, and Clerk Backend API lookups are used only to enrich collaborator presentation data with display names and avatar URLs at read time.
 - Liveblocks server access is created lazily from `LIVEBLOCKS_SECRET_KEY` to keep Next.js builds safe when the secret is missing at import time, and room authorization is always scoped to project IDs.
+- The base workspace canvas now uses a typed React Flow + Liveblocks storage model under the `flow` room key, with client-side room bootstrap isolated to `components/editor/liveblocks-canvas.tsx` while the editor route itself stays server-rendered.
+- New canvas nodes are inserted through React Flow's change pipeline so drag-to-create shape drops stay synchronized through the same Liveblocks-backed node storage model as future direct node edits.
+- Canvas shape rendering now mixes CSS and SVG primitives inside the same `canvasNode` renderer so simple rounded shapes stay lightweight while geometric and cylindrical shapes scale cleanly with arbitrary node sizes.
 
 ## Session Notes
 
@@ -78,3 +84,6 @@ change.
 - The share dialog now surfaces the owner as part of the access list, and the AI sidebar includes a client-side task composer/history shell for immediate usability while backend AI execution remains a later step.
 - The desktop workspace shell now treats both side panels as peer floating columns, letting the center canvas shrink and expand cleanly between them while preserving overlay behavior on smaller screens.
 - `.env.local` now also needs `LIVEBLOCKS_SECRET_KEY` for the realtime auth route; the server client is lazy-initialized in `lib/liveblocks.ts` so missing env values do not break the build until the auth route is actually used.
+- The base canvas spec is now live: the workspace center panel renders a React Flow room synchronized through Liveblocks, starting from an empty shared graph and leaving custom node rendering, persistence logic, controls, and AI behavior for later specs.
+- The workspace canvas now includes a bottom shape toolbar and drag-to-create flow, so users can seed collaborative `canvasNode` instances directly onto the shared graph before shape-specific visuals or richer editing tools are added.
+- The workspace canvas now renders each supported node shape with its intended silhouette and shows a fixed ghost preview during shape drags, while keeping node creation and collaborative synchronization unchanged underneath.

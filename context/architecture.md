@@ -6,6 +6,7 @@
 | --------- | --------------------------- | ------ |
 | Framework | Next.js 16 App Router + TypeScript | Application shell, routing, and server/client rendering |
 | UI        | Tailwind CSS v4 + shadcn/ui + Base UI | Shared primitives and product interface styling |
+| Canvas    | React Flow + Liveblocks React Flow | Collaborative node/edge canvas state, minimap, and graph interactions |
 | Auth      | Clerk Next.js SDK | Authentication state, session UI, and middleware integration |
 | Realtime  | Liveblocks React + Liveblocks Node | Room presence types, room provisioning, and signed realtime session access |
 | Icons     | lucide-react | Stroke-based interface icons |
@@ -16,8 +17,10 @@
 - `app/` — App Router entrypoints, global layout, and route-level UI.
 - `components/ui/` — shared UI primitives generated or adapted from the design system layer.
 - `components/editor/` — product-specific editor shell and composition components.
+- `components/editor/liveblocks-canvas.tsx` — client-side room wrapper that binds Liveblocks auth, room presence, suspense loading, custom CSS/SVG node rendering, drag-preview behavior, and drag-to-create React Flow state together.
 - `lib/liveblocks.ts` — lazy Liveblocks node client creation plus deterministic cursor-color helpers.
 - `liveblocks.config.ts` — global Liveblocks Presence and UserMeta typing for the app.
+- `types/canvas.ts` — shared canvas node and edge data/type definitions.
 - `app/api/liveblocks-auth/route.ts` — signed Liveblocks room-access endpoint gated by Clerk auth and project access checks.
 - `proxy.ts` — app-wide Clerk middleware boundary for auth state availability and future route protection.
 - `context/` — build context, implementation notes, and progress tracking.
@@ -26,6 +29,8 @@
 
 - **Clerk-hosted auth data**: user identity, session state, and auth-related account metadata.
 - **Liveblocks room state**: realtime room identity, per-user presence metadata, and signed access tokens for project-aligned rooms.
+- **Liveblocks storage state**: collaborative React Flow nodes and edges stored under the `flow` key in each project room.
+- **Canvas interaction state**: shape-drag payloads are previewed client-side, then converted into React Flow node additions and synchronized into Liveblocks storage through the shared node-change pipeline.
 - **Application storage**: not yet implemented in this repo.
 
 ## Auth and Access Model

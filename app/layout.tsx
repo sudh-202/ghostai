@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { ui } from "@clerk/ui"
+import "@xyflow/react/dist/style.css"
 
 import { clerkAppearance } from "@/lib/clerk-appearance"
 
