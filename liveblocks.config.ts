@@ -1,6 +1,7 @@
 import type { LiveblocksFlow } from "@liveblocks/react-flow"
 
 import type { CanvasEdge, CanvasNode } from "@/types/canvas"
+import type { AiStatusFeedMessage, ChatFeedMessage } from "@/types/tasks"
 
 // Define Liveblocks types for your application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
@@ -9,7 +10,7 @@ declare global {
     // Each user's Presence, for useMyPresence, useOthers, etc.
     Presence: {
       cursor: { x: number; y: number } | null;
-      isThinking: boolean;
+      thinking: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
@@ -35,6 +36,13 @@ declare global {
 
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.
     ThreadMetadata: Record<string, never>;
+
+    // Feed metadata and message payloads used for sidebar/task updates
+    FeedMetadata: {
+      channel: string;
+      task?: string;
+    };
+    FeedMessageData: AiStatusFeedMessage | ChatFeedMessage;
 
     // Custom room info set with resolveRoomsInfo, for useRoomInfo
     RoomInfo: Record<string, never>;

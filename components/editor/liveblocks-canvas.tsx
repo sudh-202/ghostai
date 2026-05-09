@@ -5,13 +5,15 @@ import {
   type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react"
-import { LiveMap, LiveObject } from "@liveblocks/client"
-import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useCanRedo, useCanUndo, useErrorListener, useMutation, useRedo, useStatus, useUndo } from "@liveblocks/react"
+import { LiveMap, LiveObject, shallow } from "@liveblocks/client"
+import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useCanRedo, useCanUndo, useErrorListener, useMutation, useOther, useOthers, useOthersConnectionIds, useRedo, useStatus, useUndo, useUpdateMyPresence } from "@liveblocks/react"
 import { useLiveblocksFlow, type LiveblocksFlow } from "@liveblocks/react-flow"
 import {
   addEdge,
@@ -33,11 +35,15 @@ import {
   useReactFlow,
   type NodeProps,
 } from "@xyflow/react"
+import { useAuth, UserButton } from "@clerk/nextjs"
 import {
   Circle,
+  Cloud,
+  CloudOff,
   Cylinder,
   Diamond,
   Hexagon,
+  Loader2,
   Maximize2,
   Pill,
   Redo2,
@@ -53,7 +59,9 @@ import {
   cloneCanvasTemplate,
   type CanvasTemplate,
 } from "@/components/editor/starter-templates"
+import { clerkAppearance } from "@/lib/clerk-appearance"
 import { cn } from "@/lib/utils"
+import { useCanvasAutosave, type SaveStatus } from "@/hooks/useCanvasAutosave"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import {
   CANVAS_NODE_COLOR_THEMES,
@@ -73,6 +81,8 @@ type LiveblocksCanvasProps = {
     requestId: number
     template: CanvasTemplate
   } | null
+  onSaveStatusChange?: (status: SaveStatus) => void
+  onRegisterSave?: (save: () => void) => void
 }
 
 type ShapeToolbarItem = {
@@ -95,7 +105,6 @@ type ShapeDragPreviewState = ShapeDragPayload & {
 const SHAPE_DRAG_MIME_TYPE = "application/x-ghost-ai-shape"
 const RESTING_SHAPE_STROKE = "oklch(1 0 0 / 0.18)"
 const SELECTED_SHAPE_STROKE = "oklch(0.92 0.04 244 / 0.86)"
-const DRAG_PREVIEW_CURSOR_OFFSET = 18
 const MIN_CANVAS_NODE_WIDTH = 120
 const MIN_CANVAS_NODE_HEIGHT = 72
 const EMPTY_LABEL_PLACEHOLDER = "Add label"
@@ -103,7 +112,7 @@ const EMPTY_EDGE_LABEL_HINT = "Add label"
 const HANDLE_BASE_CLASS_NAME =
   "!h-3.5 !w-3.5 !border-2 !border-background/90 !bg-primary/80 !shadow-[0_0_0_1px_rgba(255,255,255,0.12)] transition-opacity"
 const SOURCE_HANDLE_CLASS_NAME =
-  "z-10 opacity-0 pointer-events-none group-hover/canvas-node:opacity-100 group-hover/canvas-node:pointer-events-auto"
+  "z-10 opacity-0 group-hover/canvas-node:opacity-100 group-hover/canvas-node:pointer-events-auto"
 const TARGET_HANDLE_CLASS_NAME =
   "z-20 opacity-0 pointer-events-none [&.connectionindicator]:opacity-100 [&.connectionindicator]:pointer-events-auto [&.connectionindicator]:shadow-[0_0_0_1px_rgba(255,255,255,0.18),0_0_14px_-6px_var(--color-primary)]"
 const DEFAULT_CANVAS_EDGE_STROKE = "oklch(0.92 0.02 245 / 0.56)"
@@ -182,6 +191,18 @@ const SHAPE_TOOLBAR_ITEMS: ShapeToolbarItem[] = [
 const canvasNodeTypes = {
   canvasNode: CanvasNodeCard,
 }
+const CANVAS_PRESENCE_USER_BUTTON_APPEARANCE = {
+  ...clerkAppearance,
+  elements: {
+    ...clerkAppearance.elements,
+    avatarBox: {
+      width: "1.75rem",
+      height: "1.75rem",
+      border: "1px solid color-mix(in oklab, var(--background) 82%, transparent)",
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.06)",
+    },
+  },
+}
 
 type CanvasEdgeUiContextValue = {
   editingEdgeId: string | null
@@ -224,6 +245,191 @@ function createInitialStorage(): Liveblocks["Storage"] {
       edges: new LiveMap(),
     }) as LiveblocksFlow<CanvasNode, CanvasEdge>,
   }
+}
+
+function getAvatarInitials(value: string) {
+  return value
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+}
+
+function CanvasPresenceAvatar({
+  avatarUrl,
+  label,
+}: {
+  avatarUrl: string | null
+  label: string
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-background/80 bg-card text-[0.65rem] font-semibold text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)] ring-1 ring-white/8"
+      title={label}
+    >
+      {avatarUrl ? (
+        <span
+          className="h-full w-full bg-cover bg-center"
+          style={{ backgroundImage: `url("${avatarUrl.replace(/"/g, '\\"')}")` }}
+        />
+      ) : (
+        getAvatarInitials(label || "U")
+      )}
+    </div>
+  )
+}
+
+function CanvasPresenceCluster() {
+  const { userId } = useAuth()
+  const collaborators = useOthers(
+    (others) => {
+      const seenUserIds = new Set<string>()
+
+      return others.reduce<
+        Array<{
+          userId: string
+          displayName: string
+          avatarUrl: string | null
+        }>
+      >((accumulator, other) => {
+        const otherUserId = other.id
+
+        if (!otherUserId || otherUserId === userId || seenUserIds.has(otherUserId)) {
+          return accumulator
+        }
+
+        seenUserIds.add(otherUserId)
+        accumulator.push({
+          userId: otherUserId,
+          displayName: other.info.displayName || "Collaborator",
+          avatarUrl: other.info.avatarUrl || null,
+        })
+
+        return accumulator
+      }, [])
+    },
+    shallow
+  )
+
+  const visibleCollaborators = collaborators.slice(0, 5)
+  const overflowCount = Math.max(collaborators.length - visibleCollaborators.length, 0)
+
+  return (
+    <Panel className="pointer-events-none !right-5 !top-5" position="top-right">
+      <div className="pointer-events-auto flex items-center rounded-full border border-border/70 bg-sidebar/92 p-1.5 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        {visibleCollaborators.length > 0 ? (
+          <>
+            <div className="flex items-center">
+              {visibleCollaborators.map((collaborator, index) => (
+                <div
+                  key={collaborator.userId}
+                  className={cn(index > 0 ? "-ml-2" : "", "relative")}
+                >
+                  <CanvasPresenceAvatar
+                    avatarUrl={collaborator.avatarUrl}
+                    label={collaborator.displayName}
+                  />
+                </div>
+              ))}
+              {overflowCount > 0 ? (
+                <div className="-ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-background/80 bg-background/90 text-[0.65rem] font-semibold text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)] ring-1 ring-white/8">
+                  +{overflowCount}
+                </div>
+              ) : null}
+            </div>
+            <div aria-hidden="true" className="mx-2 h-5 w-px bg-border/70" />
+          </>
+        ) : null}
+
+        <UserButton appearance={CANVAS_PRESENCE_USER_BUTTON_APPEARANCE} />
+      </div>
+    </Panel>
+  )
+}
+
+function RemoteCursor({
+  connectionId,
+  currentUserId,
+}: {
+  connectionId: number
+  currentUserId: string | null
+}) {
+  const cursorData = useOther(
+    connectionId,
+    (other) => ({
+      cursor: other.presence.cursor,
+      thinking: other.presence.thinking,
+      cursorColor: other.info.cursorColor,
+      displayName: other.info.displayName,
+      userId: other.id,
+    }),
+    shallow
+  )
+
+  if (
+    !cursorData ||
+    !cursorData.cursor ||
+    (currentUserId && cursorData.userId === currentUserId)
+  ) {
+    return null
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 z-30"
+      style={{
+        transform: `translate(${cursorData.cursor.x}px, ${cursorData.cursor.y}px)`,
+      }}
+    >
+      <div className="-translate-x-[2px] -translate-y-[2px]">
+        <svg
+          aria-hidden="true"
+          className="h-4 w-4 drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
+          fill="none"
+          viewBox="0 0 16 16"
+        >
+          <path
+            d="M2 1.75L12.7 8.05L7.6 8.9L9.9 14.25L7.55 15L5.3 9.65L2 13.6V1.75Z"
+            fill={cursorData.cursorColor}
+            stroke="rgba(8,10,14,0.85)"
+            strokeLinejoin="round"
+            strokeWidth="1"
+          />
+        </svg>
+        <div
+          className="mt-1 inline-flex max-w-40 items-center gap-1 rounded-full border px-2 py-0.5 text-[0.68rem] font-medium leading-5 text-white shadow-[0_10px_26px_-14px_rgba(0,0,0,0.9)]"
+          style={{
+            backgroundColor: cursorData.cursorColor,
+            borderColor: "rgba(8,10,14,0.32)",
+          }}
+        >
+          {cursorData.thinking && (
+            <Loader2 aria-hidden="true" className="h-2.5 w-2.5 flex-shrink-0 animate-spin" />
+          )}
+          <span className="truncate">{cursorData.displayName || "Collaborator"}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CanvasRemoteCursors() {
+  const { userId } = useAuth()
+  const connectionIds = useOthersConnectionIds()
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+      {connectionIds.map((connectionId) => (
+        <RemoteCursor
+          connectionId={connectionId}
+          currentUserId={userId ?? null}
+          key={connectionId}
+        />
+      ))}
+    </div>
+  )
 }
 
 function CanvasLoadingState() {
@@ -798,7 +1004,7 @@ function ShapeDragPreview({ preview }: { preview: ShapeDragPreviewState }) {
       aria-hidden="true"
       className="pointer-events-none fixed left-0 top-0 z-50 opacity-90"
       style={{
-        transform: `translate(${preview.x + DRAG_PREVIEW_CURSOR_OFFSET}px, ${preview.y + DRAG_PREVIEW_CURSOR_OFFSET}px)`,
+        transform: `translate(${preview.x - preview.size.width / 2}px, ${preview.y - preview.size.height / 2}px)`,
       }}
     >
       <div
@@ -850,16 +1056,25 @@ function parseShapeDragPayload(event: DragEvent<HTMLElement>): ShapeDragPayload 
 const CONTROL_BUTTON_CLASS =
   "rounded-full border border-transparent bg-transparent text-muted-foreground/75 hover:border-border/70 hover:bg-background/70 hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
 
+const SAVE_STATUS_LABEL: Record<SaveStatus, string> = {
+  idle: "Autosave on",
+  saving: "Saving…",
+  saved: "Saved",
+  error: "Save error",
+}
+
 function CanvasControlBar({
   canRedo,
   canUndo,
   onRedo,
   onUndo,
+  saveStatus,
 }: {
   canRedo: boolean
   canUndo: boolean
   onRedo: () => void
   onUndo: () => void
+  saveStatus: SaveStatus
 }) {
   const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
 
@@ -914,6 +1129,27 @@ function CanvasControlBar({
         >
           <Redo2 aria-hidden="true" />
         </Button>
+        <div aria-hidden="true" className="mx-1 h-4 w-px bg-border/60" />
+        <Button
+          aria-label={SAVE_STATUS_LABEL[saveStatus]}
+          className={cn(
+            CONTROL_BUTTON_CLASS,
+            "pointer-events-none",
+            saveStatus === "error" && "!text-destructive/80",
+            saveStatus === "saved" && "!text-emerald-400/75",
+          )}
+          size="icon-sm"
+          title={SAVE_STATUS_LABEL[saveStatus]}
+          variant="ghost"
+        >
+          {saveStatus === "saving" ? (
+            <Loader2 aria-hidden="true" className="animate-spin" />
+          ) : saveStatus === "error" ? (
+            <CloudOff aria-hidden="true" />
+          ) : (
+            <Cloud aria-hidden="true" />
+          )}
+        </Button>
       </div>
     </Panel>
   )
@@ -950,13 +1186,18 @@ function ShapeToolbar({
 }
 
 function CollaborativeCanvasFlow({
+  roomId,
   templateImportRequest,
-}: Pick<LiveblocksCanvasProps, "templateImportRequest">) {
+  onSaveStatusChange,
+  onRegisterSave,
+}: Pick<LiveblocksCanvasProps, "roomId" | "templateImportRequest" | "onSaveStatusChange" | "onRegisterSave">) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<ShapeDragPreviewState | null>(null)
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
+  const [loadAttempted, setLoadAttempted] = useState(false)
   const nodeIdCounterRef = useRef(0)
+  const didLoadRef = useRef(false)
   const isShapeDragging = dragPreview !== null
   const status = useStatus()
   const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
@@ -964,6 +1205,7 @@ function CollaborativeCanvasFlow({
   const redo = useRedo()
   const canUndo = useCanUndo()
   const canRedo = useCanRedo()
+  const updateMyPresence = useUpdateMyPresence()
 
   useKeyboardShortcuts({ reactFlow, onUndo: undo, onRedo: redo })
 
@@ -987,6 +1229,26 @@ function CollaborativeCanvasFlow({
     },
     storageKey: "flow",
   })
+
+  const { status: saveStatus, save } = useCanvasAutosave({
+    projectId: roomId,
+    nodes,
+    edges,
+    enabled: loadAttempted,
+  })
+
+  const onSaveStatusChangeRef = useRef(onSaveStatusChange)
+  onSaveStatusChangeRef.current = onSaveStatusChange
+  const onRegisterSaveRef = useRef(onRegisterSave)
+  onRegisterSaveRef.current = onRegisterSave
+
+  useEffect(() => {
+    onSaveStatusChangeRef.current?.(saveStatus)
+  }, [saveStatus])
+
+  useEffect(() => {
+    onRegisterSaveRef.current?.(save)
+  }, [save])
 
   const importTemplate = useMutation(
     ({ storage }, template: CanvasTemplate) => {
@@ -1041,6 +1303,80 @@ function CollaborativeCanvasFlow({
     },
     []
   )
+
+  const loadFromBlob = useMutation(
+    ({ storage }, data: { nodes: CanvasNode[]; edges: CanvasEdge[] }) => {
+      const flow = storage.get("flow")
+
+      if (!flow) {
+        return
+      }
+
+      const nextNodes = new LiveMap(
+        data.nodes.map((node) => [
+          node.id,
+          new LiveObject({
+            id: node.id,
+            type: node.type,
+            position: new LiveObject({ x: node.position.x, y: node.position.y }),
+            width: node.width,
+            height: node.height,
+            data: new LiveObject({
+              label: node.data.label,
+              color: node.data.color,
+              textColor: node.data.textColor,
+              shape: node.data.shape,
+            }),
+          }),
+        ])
+      )
+
+      const nextEdges = new LiveMap(
+        data.edges.map((edge) => [
+          edge.id,
+          new LiveObject({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            type: edge.type ?? DEFAULT_CANVAS_EDGE_OPTIONS.type,
+            sourceHandle: edge.sourceHandle,
+            targetHandle: edge.targetHandle,
+            data: new LiveObject({ label: edge.data?.label ?? "" }),
+          }),
+        ])
+      )
+
+      flow.set("nodes", nextNodes as never)
+      flow.set("edges", nextEdges as never)
+    },
+    []
+  )
+
+  useEffect(() => {
+    if (didLoadRef.current) return
+    didLoadRef.current = true
+
+    if (nodes.length > 0 || edges.length > 0) {
+      setLoadAttempted(true)
+      return
+    }
+
+    fetch(`/api/projects/${roomId}/canvas`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.nodes?.length > 0 || data?.edges?.length > 0) {
+          loadFromBlob(data)
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              reactFlow.fitView({ duration: 320, padding: 0.18 })
+            })
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadAttempted(true))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!isShapeDragging) {
@@ -1097,6 +1433,34 @@ function CollaborativeCanvasFlow({
       window.cancelAnimationFrame(nextFrame)
     }
   }, [importTemplate, reactFlow, templateImportRequest])
+
+  useEffect(() => {
+    function handleDeleteKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Delete" && event.key !== "Backspace") return
+
+      const target = event.target
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) {
+          return
+        }
+      }
+
+      const selectedNodes = nodes.filter((n) => n.selected)
+      const selectedNodeIds = new Set(selectedNodes.map((n) => n.id))
+      const edgesToDelete = edges.filter(
+        (e) => e.selected || selectedNodeIds.has(e.source) || selectedNodeIds.has(e.target)
+      )
+
+      if (selectedNodes.length === 0 && edgesToDelete.length === 0) return
+
+      event.preventDefault()
+      onDelete({ nodes: selectedNodes, edges: edgesToDelete })
+    }
+
+    window.addEventListener("keydown", handleDeleteKeyDown)
+    return () => window.removeEventListener("keydown", handleDeleteKeyDown)
+  }, [nodes, edges, onDelete])
 
   function handleShapeDragStart(
     event: DragEvent<HTMLButtonElement>,
@@ -1170,10 +1534,14 @@ function CollaborativeCanvasFlow({
 
     event.preventDefault()
 
-    const position = reactFlow.screenToFlowPosition({
+    const center = reactFlow.screenToFlowPosition({
       x: event.clientX,
       y: event.clientY,
     })
+    const position = {
+      x: center.x - payload.size.width / 2,
+      y: center.y - payload.size.height / 2,
+    }
     const nodeCounter = nodeIdCounterRef.current
     const timestamp = Date.now()
 
@@ -1200,6 +1568,23 @@ function CollaborativeCanvasFlow({
     ])
   }
 
+  function handleCanvasMouseMove(event: ReactMouseEvent<Element>) {
+    const bounds = event.currentTarget.getBoundingClientRect()
+
+    updateMyPresence({
+      cursor: {
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      },
+    })
+  }
+
+  function clearCanvasCursor() {
+    updateMyPresence({
+      cursor: null,
+    })
+  }
+
   if (status === "disconnected" && errorMessage) {
     return <CanvasErrorState message={errorMessage} />
   }
@@ -1219,9 +1604,9 @@ function CollaborativeCanvasFlow({
           connectionMode={ConnectionMode.Loose}
           defaultEdgeOptions={DEFAULT_CANVAS_EDGE_OPTIONS}
           defaultMarkerColor={DEFAULT_CANVAS_EDGE_STROKE}
+          deleteKeyCode={null}
           edgeTypes={canvasEdgeTypes}
           edges={edges}
-          fitView
           nodeTypes={canvasNodeTypes}
           nodes={nodes}
           onConnect={handleEdgeConnect}
@@ -1234,17 +1619,22 @@ function CollaborativeCanvasFlow({
             setHoveredEdgeId((current) => (current === edge.id ? null : current))
           }}
           onEdgesChange={onEdgesChange}
+          onMouseLeave={clearCanvasCursor}
+          onMouseMove={handleCanvasMouseMove}
           onNodesChange={onNodesChange}
           onPaneClick={() => {
             setEditingEdgeId(null)
             setHoveredEdgeId(null)
           }}
         >
+          <CanvasPresenceCluster />
+          <CanvasRemoteCursors />
           <CanvasControlBar
             canRedo={canRedo}
             canUndo={canUndo}
             onRedo={redo}
             onUndo={undo}
+            saveStatus={saveStatus}
           />
           <Background
             color="oklch(1 0 0 / 0.08)"
@@ -1264,10 +1654,13 @@ function CollaborativeCanvasFlow({
   )
 }
 
-export function LiveblocksCanvas({
+export function LiveblocksWorkspaceProvider({
   roomId,
-  templateImportRequest = null,
-}: LiveblocksCanvasProps) {
+  children,
+}: {
+  roomId: string
+  children: ReactNode
+}) {
   return (
     <LiveblocksProvider
       authEndpoint={async (room) => {
@@ -1295,20 +1688,34 @@ export function LiveblocksCanvas({
         id={roomId}
         initialPresence={{
           cursor: null,
-          isThinking: false,
+          thinking: false,
         }}
         initialStorage={createInitialStorage}
       >
-        <ClientSideSuspense fallback={<CanvasLoadingState />}>
-          {() => (
-            <ReactFlowProvider>
-              <CollaborativeCanvasFlow
-                templateImportRequest={templateImportRequest}
-              />
-            </ReactFlowProvider>
-          )}
-        </ClientSideSuspense>
+        {children}
       </RoomProvider>
     </LiveblocksProvider>
+  )
+}
+
+export function LiveblocksCanvas({
+  roomId,
+  templateImportRequest = null,
+  onSaveStatusChange,
+  onRegisterSave,
+}: LiveblocksCanvasProps) {
+  return (
+    <ClientSideSuspense fallback={<CanvasLoadingState />}>
+      {() => (
+        <ReactFlowProvider>
+          <CollaborativeCanvasFlow
+            roomId={roomId}
+            templateImportRequest={templateImportRequest}
+            onSaveStatusChange={onSaveStatusChange}
+            onRegisterSave={onRegisterSave}
+          />
+        </ReactFlowProvider>
+      )}
+    </ClientSideSuspense>
   )
 }
