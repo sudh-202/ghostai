@@ -1,11 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: [
-    "@prisma/client",
-    "@prisma/adapter-pg",
-    "@prisma/client-runtime-utils",
-  ],
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
   turbopack: {
     root: process.cwd(),
   },

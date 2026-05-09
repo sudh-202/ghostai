@@ -612,13 +612,15 @@ async function applyDesignPlan(
   let processedActions = 0
 
   await liveblocks.mutateStorage(roomId, async ({ root }) => {
-    let flow = root.get("flow") as MutableLiveObject | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = root as any
+    let flow = r.get("flow") as MutableLiveObject | undefined
     if (!flow) {
       flow = new LiveObject({
         nodes: new LiveMap(),
         edges: new LiveMap(),
       }) as MutableLiveObject
-      root.set("flow", flow as never)
+      r.set("flow", flow)
     }
 
     let nodesMap = flow.get("nodes") as MutableLiveMap | undefined
