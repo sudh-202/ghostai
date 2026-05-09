@@ -1,22 +1,28 @@
-enum Status {
-  DRAFT
-  ARCHIVED
-}
-
 model Project {
-  id            String   @id @default(cuid())
+  id            String                @id @default(cuid())
   ownerId       String
   name          String
   description   String?
-  status        Status   @default(DRAFT)
-  canvasJsonPath String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  status        Status                @default(DRAFT)
+  canvasBlobUrl String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
   collaborators ProjectCollaborator[]
+  taskRuns      TaskRun[]
+  projectSpecs  ProjectSpec[]
 
   @@index([ownerId])
   @@index([createdAt])
+}
+
+model ProjectSpec {
+  id        String   @id @default(cuid())
+  projectId String
+  filePath  String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }
 
 model ProjectCollaborator {
@@ -24,10 +30,14 @@ model ProjectCollaborator {
   projectId String
   email     String
   createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, email])
   @@index([email])
   @@index([projectId, createdAt])
+}
+
+enum Status {
+  DRAFT
+  ARCHIVED
 }

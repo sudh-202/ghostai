@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server"
 
 import { getLiveblocks, getCursorColorForUser } from "@/lib/liveblocks"
 import { getCurrentIdentity, getProjectAccess } from "@/lib/project-access"
+import { AI_CHAT_FEED_ID, AI_STATUS_FEED_ID } from "@/types/tasks"
 
 function getDisplayName(user: Awaited<ReturnType<typeof currentUser>>) {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
@@ -17,6 +18,32 @@ function getDisplayName(user: Awaited<ReturnType<typeof currentUser>>) {
 
 function getAvatarUrl(user: Awaited<ReturnType<typeof currentUser>>) {
   return user?.imageUrl ?? ""
+}
+
+async function ensureProjectFeeds(projectId: string) {
+  const liveblocks = getLiveblocks()
+
+  const feeds = [
+    { feedId: AI_STATUS_FEED_ID, channel: AI_STATUS_FEED_ID, task: "design" as const },
+    { feedId: AI_CHAT_FEED_ID, channel: AI_CHAT_FEED_ID },
+  ]
+
+  await Promise.all(
+    feeds.map(async ({ feedId, channel, task }) => {
+      try {
+        await liveblocks.getFeed({ roomId: projectId, feedId })
+      } catch (error) {
+        const status =
+          typeof error === "object" && error && "status" in error ? error.status : null
+        if (status !== 404) return
+        await liveblocks.createFeed({
+          roomId: projectId,
+          feedId,
+          metadata: { channel, ...(task ? { task } : {}) },
+        })
+      }
+    })
+  )
 }
 
 export async function POST(request: Request) {
@@ -51,6 +78,8 @@ export async function POST(request: Request) {
       projectId,
     },
   })
+
+  await ensureProjectFeeds(projectId)
 
   const session = liveblocks.prepareSession(identity.userId, {
     userInfo: {
